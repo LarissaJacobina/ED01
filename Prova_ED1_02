@@ -1,0 +1,203 @@
+#include <stdio.h>
+#include <time.h>
+#include <stdlib.h>
+#define TAMANHO 7
+typedef struct No
+{
+    int dado;
+    struct No *direita;
+    struct No *esquerda;
+} No;
+
+No *criarArvore() { return NULL; }
+
+int NoVazia(No *raiz)
+{ // 1 se a arvore vazia, 0 caso contrario
+    return raiz == NULL;
+}
+
+int getValor(No **no)
+{
+    if ((*no) != NULL)
+    {
+        return (*no)->dado;
+    }
+}
+
+// Metodo para desenhar a arvore em um arquivo arvore.png
+// Precisa de ter o graphviz instalado
+// Ubuntu: sudo apt install python-pydot python-pydot-ng graphviz
+// Fedora: sudo dnf install graphviz
+void gerarArquivoDot(FILE **arquivoDot, No *raiz)
+{
+    if (raiz != NULL)
+    {
+        char s1[20];
+        char s2[20];
+        if (getValor(&raiz->esquerda) != 0)
+        {
+            sprintf(s1, "%d->%d;\n", raiz->dado, getValor(&raiz->esquerda));
+            fprintf((*arquivoDot), "%s", s1);
+        }
+        if (getValor(&raiz->direita) != 0)
+        {
+            sprintf(s2, "%d->%d;\n", raiz->dado, getValor(&raiz->direita));
+            fprintf((*arquivoDot), "%s", s2);
+        }
+        gerarArquivoDot(arquivoDot, raiz->esquerda); //esquerda (subNo)
+        gerarArquivoDot(arquivoDot, raiz->direita);  //direita (subNo)
+    }
+}
+
+void inserirDado(No **raiz, int dado)
+{
+    if (*raiz == NULL)
+    {
+        *raiz = (No *)malloc(sizeof(No));
+        (*raiz)->esquerda = NULL;
+        (*raiz)->direita = NULL;
+        (*raiz)->dado = dado;
+    }
+    else
+    {
+        if (dado < (*raiz)->dado)
+        { //dado menor? vai pra esquerda
+            //percorrer subNo da esquerda
+            inserirDado(&(*raiz)->esquerda, dado);
+        }
+        if (dado > (*raiz)->dado)
+        { //dado maior? vai pra direita
+            //percorrer subNo da direita
+            inserirDado(&(*raiz)->direita, dado);
+        }
+    }
+}
+
+No *MaiorDireita(No **no)
+{
+    if ((*no)->direita != NULL)
+        return MaiorDireita(&(*no)->direita);
+    else
+    {
+        No *aux = *no;
+        if ((*no)->esquerda != NULL)
+            *no = (*no)->esquerda;
+        else
+            *no = NULL;
+        return aux;
+    }
+}
+
+No *MenorEsquerda(No **no)
+{
+    if ((*no)->esquerda != NULL)
+        return MenorEsquerda(&(*no)->esquerda);
+    else
+    {
+        No *aux = *no;
+        if ((*no)->direita != NULL)
+            *no = (*no)->direita;
+        else
+            *no = NULL;
+        return aux;
+    }
+}
+
+int main(void)
+{
+    int matriz[TAMANHO][TAMANHO], i, j;
+    int aux = 0;
+    srand(time(NULL));
+
+    for (int i = 0; i < TAMANHO; i++)
+    {
+        for (int j = 0; j < TAMANHO; j++)
+        {
+            matriz[i][j] = rand() % 10; //Atribui um inteiro aleatorio entre 0 e 9
+        }
+    }
+
+    for (int i = 0; i < TAMANHO; i++)
+    {
+        for (int j = 0; j < TAMANHO; j++)
+        {
+            printf("[%d] ", matriz[i][j]);
+        }
+        printf("\n");
+    }
+
+    printf("\n");
+    printf("Diagonal Principal:\n\n");
+
+    for (i = 0; i < TAMANHO; i++)
+    {
+        for (j = 0; j < TAMANHO; j++)
+        {
+            if (j == i)
+            {
+                printf("[%d] ", matriz[i][j]);
+            }
+        }
+    }
+
+    printf("\n");
+    printf("\n");
+    printf("Diagonal Principal ordenada:\n\n");
+    int vetor[TAMANHO];
+    for (i = 0; i < TAMANHO; i++)
+    {
+        for (j = 0; j < TAMANHO; j++)
+        {
+            if (j == i)
+            {
+                vetor[i] = matriz[i][j];
+            }
+        }
+    }
+
+    int eleito, menor, posicaoDoMenor;
+
+    for (int i = 0; i < TAMANHO - 2; i++)
+    { // 0 -> penultina posicao
+        eleito = vetor[i];
+        menor = vetor[i + 1];
+        posicaoDoMenor = i + 1;
+        for (int j = i + 1; j < TAMANHO; j++)
+        {
+            if (vetor[j] < menor)
+            {
+                menor = vetor[j];
+                posicaoDoMenor = j;
+            }
+        }
+        if (menor < eleito)
+        {
+            vetor[i] = vetor[posicaoDoMenor];
+            vetor[posicaoDoMenor] = eleito;
+        }
+    }
+    //Mostra valores do vetor ordenado
+    for (int i = 0; i < TAMANHO; i++)
+    {
+        printf("[%d] ", vetor[i]);
+    }
+    printf("\n");
+    printf("\n");
+
+    No *raiz = criarArvore();
+
+    for (int i = 0; i < 7; i++)
+    {
+        inserirDado(&raiz, vetor[i]);
+    }
+    FILE *arquivoDot;
+    arquivoDot = fopen("arvore.dot", "w");
+    fprintf(arquivoDot, "%s", "digraph G {\n");
+    gerarArquivoDot(&arquivoDot, raiz);
+    fprintf(arquivoDot, "%s", "}\n");
+    fclose(arquivoDot);
+    free(raiz);
+    system("dot -Tpng arvore.dot -o arvore.png");
+
+    return (0);
+}
